@@ -4,9 +4,9 @@ static FileManager IDAFile("./data/ida.log", "w");
 
 static Compressor BBLTracer;
 
-const static size_t MAX_THREADS = 0x100;
+typedef unsigned long long u8;
 
-static vector< map<ADDRINT, unsigned long long> > BBLProfDic(MAX_THREADS);
+static vector<u8> BBLProfDic;
 static map<ADDRINT, set<ADDRINT> > CallMap;
 
 struct bbl
@@ -34,12 +34,10 @@ static VOID PIN_FAST_ANALYSIS_CALL bblTrace(ADDRINT startAddr)
 	if ( !AddrSwc )
 		return;
 
-	B.addr = startAddr;
-	B.thread = PIN_ThreadId() & 0xFF;
+	ADDRINT addr = startAddr - Config.get_codeStartAddr();
+	++BBLProfDic[addr];
 
-	BBLProfDic[B.thread][startAddr] += 1;
-
-	BBLTracer.save_data( &B, sizeof(bbl) );
+	// BBLTracer.save_data( &B, sizeof(bbl) );
 }
     
 
@@ -55,7 +53,7 @@ static VOID tracer(TRACE trace, VOID *v)
 		{
 			for ( INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins))
 			{
-				fprintf( FpCodePool.fp(), "%08x|%s\n", INS_Address (ins), INS_Disassemble(ins).c_str() );
+				fprintf( FpCodePool.fp(), "%08x|%s\n", INS_Address(ins), INS_Disassemble(ins).c_str() );
 			}
 			fprintf( FpCodePool.fp(), "----\n" );
 
@@ -97,27 +95,13 @@ static VOID instrumentor(INS ins, VOID *v)
 // This function is called when the application exits
 static VOID Fini(INT32 code, VOID *v)
 {
-	for ( size_t i = 0; i < MAX_THREADS; ++i )
+	for ( size_t i = Config.get_codeStartAddr(); i < Config.get_codeEndAddr(); ++i )
 	{
-		if ( BBLProfDic[i].size() != 0 )
-		{
-			for ( map<ADDRINT, unsigned long long>::const_iterator it = BBLProfDic[i].begin(); it != BBLProfDic[i].end(); ++it )
-			{
-				fprintf( FpProf.fp(), "%08X@%04d: %lld\n", it->first, i, it->second );
-			}
-		}
+		u8 t = BBLProfDic[i - Config.get_codeStartAddr()];
+		if ( t != 0 )
+			fprintf( FpProf.fp(), "%08x: %llu\n", i, t );
 	}
 	
-	for ( map<ADDRINT, set<ADDRINT> >::const_iterator i = CallMap.begin(); i != CallMap.end(); ++i )
-	{
-		fprintf( IDAFile.fp(), "%08X branches to: ", i->first );
-		for ( set<ADDRINT>::const_iterator j = i->second.begin(); j != i->second.end(); ++j )
-		{
-			fprintf( IDAFile.fp(), "%08X ", *j );
-		}
-		fprintf( IDAFile.fp(), "\n" );
-	}
-
 	fprintf( Logger.fp(), "----FINI BBLTracer----\n");
 	fflush(Logger.fp());
 }
@@ -141,10 +125,11 @@ int main(int argc, char * argv[])
 
 	fprintf( Logger.fp(), "----Injection----\n");
 
+	BBLProfDic = vector<u8>( Config.get_codeSectionSize(), 0 );
     // Register Instruction to be called to instrument instructions
 	TRACE_AddInstrumentFunction(tracer, 0);
 
-	INS_AddInstrumentFunction(instrumentor, 0);
+	// INS_AddInstrumentFunction(instrumentor, 0);
 
     // Register Fini to be called when the application exits
     PIN_AddFiniFunction(Fini, 0);

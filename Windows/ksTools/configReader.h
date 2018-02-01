@@ -11,6 +11,7 @@ public:
 	ADDRINT get_detachPoint();
 	THREADID get_threadToMonitor();
 	size_t get_instRecNum();
+	size_t get_codeSectionSize();
 	const set<ADDRINT> & get_addrFilter();
 
 	bool in_addr_range	(ADDRINT pc);
@@ -23,6 +24,7 @@ private:
 	ADDRINT switchOnAddr_;
 	ADDRINT switchOffAddr_;
 	ADDRINT detachPoint_;
+	size_t codeSectionSize_;
 	THREADID threadToMonitor_;
 	size_t instRecNum_;
 	set<ADDRINT> addrFilter_;

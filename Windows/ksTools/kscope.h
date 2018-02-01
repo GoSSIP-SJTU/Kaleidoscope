@@ -44,6 +44,66 @@ private:
 	static bool toInitFlag_;
 };
 
+
+class Bundler
+{
+public:
+	void init( ADDRINT base, size_t size )
+	{
+		baseAddr_ = base;
+		instBundler_ = vector< set<ADDRINT> >(size);
+	}
+
+	void add_record( ADDRINT pc, ADDRINT memAddr )
+	{
+		instBundler_[pc - baseAddr_].insert(memAddr);
+	}
+
+	void output_log( FILE * fp )
+	{
+		for ( size_t i = 0; i < instBundler_.size(); ++i )
+		{
+			if ( instBundler_[i].size() != 0 )
+				fprintf( fp, "%08x -- %u\n", i + baseAddr_, instBundler_[i].size() );
+		}
+	}
+
+private:
+	vector< set<ADDRINT> > instBundler_;
+	ADDRINT baseAddr_;
+};
+
+
+class InstCounter
+{
+public:
+	void init( ADDRINT base, size_t size )
+	{
+		baseAddr_ = base;
+		instRecCounter_ = vector<size_t>(size);
+	}
+
+	size_t inst_record_num( ADDRINT pc )
+	{
+		return instRecCounter_[pc - baseAddr_];
+	}
+
+	void add_record( ADDRINT pc )
+	{
+		++instRecCounter_[pc - baseAddr_];
+	}
+
+	void clean()
+	{
+		instRecCounter_ = vector<size_t>(instRecCounter_.size());
+	}
+
+private:
+	ADDRINT baseAddr_;
+	vector<size_t> instRecCounter_;
+};
+
+
 #include "configReader.h"
 
 bool init_Interval( size_t& interval );

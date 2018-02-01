@@ -9,7 +9,7 @@ using namespace std;
 
 ConfigReader::ConfigReader()
 {
-	FileManager LogFile("data/configReader.log", "w");
+	FileManager LogFile("log/configReader.log", "w");
 
 	codeStartAddr_ = 0xFFFFFFFF;
 	codeEndAddr_ = 0xFFFFFFFF;
@@ -41,7 +41,9 @@ ConfigReader::ConfigReader()
 
 		sscanf( configMap_[string("codeStartAddr")].c_str(), "%08x", &codeStartAddr_ );
 		sscanf( configMap_[string("codeEndAddr")].c_str(), "%08x", &codeEndAddr_ );
+		codeSectionSize_ = codeEndAddr_ - codeStartAddr_ + 1;
 		fprintf( LogFile.fp(), "from %08x to %08x\n", codeStartAddr_, codeEndAddr_ );
+		fprintf( LogFile.fp(), "size of code section %u\n", codeSectionSize_ );
 
 		sscanf( configMap_[string("switchOnAddr")].c_str(), "%08x", &switchOnAddr_ );
 		sscanf( configMap_[string("switchOffAddr")].c_str(), "%08x", &switchOffAddr_ );
